@@ -1,6 +1,6 @@
 #include <Servo.h>                           
 
-#define _offset 50
+#define _offset -50
 
 Servo servoLeft;                             
 Servo servoRight;
