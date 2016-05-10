@@ -153,6 +153,7 @@ end
 
 _srand(_time(null));
 var int is_dead = 0;
+
 par/or do
     await SDL_QUIT;
 with
@@ -168,65 +169,67 @@ with
     end;
     pool Cloud[] clouds;
     var int points = 0;
+    watching p do 
+        par/or do
 
-    par/or do
-    every 3000ms do
-        spawn Cloud in clouds with
-            var int w = 100 ;
-            var int h = 20 ;
-            var int y = h + _rand()%500;
-            this.ren = &_ID(_REN);
-            this.r   = _SDL_Rect(0,y,w,h);
-            this.vx  = 10 + _rand()%50;
-        end;
-    end
-
-    with
-        every 750ms do
-            spawn Coin in coins with
-                var int x = _rand()%1000;
-                var int y = _rand()%1000;
-                this.ren   = &_ID(_REN);
-                this.r   = _SDL_Rect(x,y,10,10);
+        every 3000ms do
+            spawn Cloud in clouds with
+                var int w = 100 ;
+                var int h = 20 ;
+                var int y = h + _rand()%500;
+                this.ren = &_ID(_REN);
+                this.r   = _SDL_Rect(0,y,w,h);
+                this.vx  = 10 + _rand()%50;
             end;
-        end 
-    with
-        every SDL_DT do
-            var Coin&&?[] tocol;
-            loop c1 in coins do
-                if _SDL_HasIntersection(&&c1:r, &&p.r) then
-                    tocol = []..tocol..[c1];
-                end
-            end
-            loop i in $tocol do
-                if tocol[i]? then
-                    points = points + 1;
-                    _printf("Pontos: %d\n", points);
-                    emit tocol[i]!:collided;
-                end
-            end 
         end
-    with
-        every SDL_DT do
-            var Cloud&&?[] tocol; 
-            loop c2 in clouds do
-               if _SDL_HasIntersection(&&c2:r, &&p.r) then
-                    tocol = []..tocol..[c2];
-                    break;
+
+        with
+            every 750ms do
+                spawn Coin in coins with
+                    var int x = _rand()%1000;
+                    var int y = _rand()%1000;
+                    this.ren   = &_ID(_REN);
+                    this.r   = _SDL_Rect(x,y,10,10);
+                end;
+            end 
+        with
+            every SDL_DT do
+                var Coin&&?[] tocol;
+                loop c1 in coins do
+                    if _SDL_HasIntersection(&&c1:r, &&p.r) then
+                        tocol = []..tocol..[c1];
+                    end
+                end
+                loop i in $tocol do
+                    if tocol[i]? then
+                        points = points + 1;
+                        _printf("Pontos: %d\n", points);
+                        emit tocol[i]!:collided;
+                    end
                 end 
             end
-            loop i in $tocol do
-                if tocol[i]? then
-                    _printf("GAME OVER. TOTAL DE PONTOS: %d\n", points);
-                    emit p.collided;             
+        with
+            every SDL_DT do
+                var Cloud&&?[] tocol; 
+                loop c2 in clouds do
+                   if _SDL_HasIntersection(&&c2:r, &&p.r) then
+                        tocol = []..tocol..[c2];
+                        break;
+                    end 
+                end
+                loop i in $tocol do
+                    if tocol[i]? then
+                        _printf("GAME OVER. TOTAL DE PONTOS: %d\n", points);
+                        emit p.collided;             
+                    end
                 end
             end
         end
     end
+    _printf("GAME OVER. TOTAL DE PONTOS: %d\n", points);
 with
     every SDL_REDRAW do
         _SDL_RenderPresent(_REN);
     end
 end
-
 escape 0;
