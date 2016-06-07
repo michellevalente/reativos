@@ -1,0 +1,78 @@
+#include "/home/terra/TerraNG/terra/TerraNet.defs"
+
+var ushort nodeId = getNodeId();
+pktype usrMsg from radioMsg with
+    var ubyte[4]  d8;
+    var ushort[4] d16;
+    var ulong[2]  d32;
+end
+ 
+var usrMsg sndData;
+var usrMsg recData;
+var usrMsg tempData;
+var ushort pai = 1;
+var ubyte cycle = 0;
+
+
+// Create the tree
+if(nodeId == 11) then
+	await 1s;
+	sndData.type=1;
+	sndData.target = BROADCAST;
+	sndData.source = nodeId;
+	emit SEND(sndData);
+    await SEND_DONE;
+else 
+	recData = await RECEIVE;
+	pai = recData.source;
+	recData.source = nodeId;    
+	recData.target = BROADCAST;
+    emit SEND(recData);
+    await SEND_DONE;
+end
+
+await 1s;
+
+var ubyte stat;
+var ubyte ack;
+par do
+    loop do
+		// Send temperature. 
+		// Waiting with different time for different nodeIds
+        await (nodeId*263)ms;
+		// Stop at cicle 10 to analyze the results 
+		if cycle < 10 then        
+			// Create message with the temperature and put in the list to send
+			emit REQ_TEMP();
+			var usrMsg newData;
+		    newData.d16[0] = await TEMP;
+			newData.target = pai;
+			newData.source = nodeId;
+			newData.d8[0] = cycle;
+			stat = qPut(newData);
+			inc cycle;					
+		end
+    end
+with
+	loop do 
+		// Get incoming messages and put in a list 
+		tempData = await RECEIVE;
+    	tempData.target = pai;
+		stat = qPut(tempData);
+	end 
+with
+	loop do 
+		// Test if there are messages in the list 
+		if(qSize() > 0) then
+			// Get the message from the list and send waiting for ack
+			stat = qGet(recData);				
+			emit SEND_ACK(recData);
+			ack = await SEND_DONE_ACK;
+			// If it doesnt receive an ack put the message in the list again
+			if not ack then 
+				stat = qPut(recData);
+			end
+		end
+		await 20ms;
+	end
+end
